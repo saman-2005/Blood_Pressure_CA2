@@ -1,0 +1,511 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <cstring>
+using namespace std;
+const int SIZE = 100;
+struct ParticipantInfo
+{
+    int id, age;
+    string name;
+};
+union ContactChoice
+{
+    int phone;
+    int code;
+};
+enum class BPCategory { Normal, Elevated, High };
+void show(int x) { cout << x << endl; }
+void show(string s) { cout << s << endl; }
+void byValue(int x) { x = x + 10; }
+void byAddress(int *x) { *x = *x + 10; }
+void byReference(int &x) { x = x + 10; }
+int countHigh(int a[], int n)
+{
+    if (n == 0) return 0;
+    return (a[n - 1] >= 140) + countHigh(a, n - 1);
+}
+bool isPositive(int sys, int dia)
+{
+    return sys >= 140 || dia >= 90;
+}
+struct BPFile
+{
+    int id, age, sys, dia, pulse;
+    char name[50], date[30];
+};
+class ScreenRecord
+{
+private:
+    int id, age, sys, dia, pulse;
+    string name, date;
+    BPCategory category;
+    int *ptr;                 
+    int arr[2][2];            
+    static int totalRecords;
+    void classify()
+    {
+        if (sys < 120 && dia < 80)
+            category = BPCategory::Normal;
+        else if (sys < 140 && dia < 90)
+            category = BPCategory::Elevated;
+        else
+            category = BPCategory::High;
+    }
+public:
+    ScreenRecord() : id(0), age(0), sys(0), dia(0),
+                     pulse(0), name("Unknown"),
+                     date("Not entered"),
+                     category(BPCategory::Normal)
+    {
+        ptr = &sys;
+    }
+    ScreenRecord(int i, string n = "Unknown", int a = 18)
+        : id(i), age(a), sys(0), dia(0), pulse(0),
+          name(n), date("Not entered"),
+          category(BPCategory::Normal)
+    {
+        ptr = &sys;
+    }
+    ScreenRecord(const ScreenRecord &r)
+        : id(r.id), age(r.age), sys(r.sys),
+          dia(r.dia), pulse(r.pulse), name(r.name),
+          date(r.date), category(r.category)
+    {
+        ptr = &sys;
+    }
+    ~ScreenRecord() { }
+    static int getTotal() { return totalRecords; }
+    static void increaseTotal() { totalRecords++; }
+    void setDetails(int i, string n, int a, int s,
+                    int d, int p, string dt)
+    {
+        this->id = i;
+        this->name = n;
+        this->age = a;
+        this->sys = s;
+        this->dia = d;
+        this->pulse = p;
+        this->date = dt;
+        classify();
+    }
+    int getID() { return id; }
+    int getSys() { return sys; }
+    int getDia() { return dia; }
+    string getName() { return name; }
+    inline void display()
+    {
+        cout << "\nID: " << id
+             << "\nName: " << name
+             << "\nAge: " << age
+             << "\nBP: " << sys << "/" << dia
+             << "\nPulse: " << pulse
+             << "\nDate: " << date
+             << "\nCategory: ";
+        if (category == BPCategory::Normal)
+            cout << "Normal";
+        else if (category == BPCategory::Elevated)
+            cout << "Elevated";
+        else
+            cout << "High";
+        cout << endl;
+    }
+    static int ScreenRecord::*getSysPointer()
+    {
+        return &ScreenRecord::sys;
+    }
+    int *getPointer() { return ptr; }
+    void showArray()
+    {
+        cout << "\nClass 2D Array:\n";
+        for (int i = 0; i < 2; i++)
+        {
+            for (int j = 0; j < 2; j++)
+            {
+                arr[i][j] = i + j;
+                cout << arr[i][j] << " ";
+            }
+            cout << endl;
+        }
+    }
+    void changeName()
+    {
+        name.append(" Camp");
+        cout << "\nName: " << name;
+        cout << "\nLength: " << name.length();
+        cout << "\nFirst character: " << name.at(0) << endl;
+    }
+    void writeFile(ofstream &out)
+    {
+        out << id << "|" << name << "|" << age << "|"
+            << sys << "|" << dia << "|" << pulse << "|"
+            << date << endl;
+    }
+    friend void showPrivate(ScreenRecord r);
+    friend class CampAdmin;
+};
+int ScreenRecord::totalRecords = 0;
+void showPrivate(ScreenRecord r)
+{
+    cout << "\nFriend Function: "
+         << r.name << " BP: " << r.sys << endl;
+}
+class CampAdmin
+{
+public:
+    void showRecord(ScreenRecord r)
+    {
+        cout << "\nAdmin Access: "
+             << r.name << " Age: " << r.age << endl;
+    }
+};
+ScreenRecord records[SIZE];
+int n = 0;
+bool idExists(int id)
+{
+    for (int i = 0; i < n; i++)
+        if (records[i].getID() == id)
+            return true;
+    return false;
+}
+void addRecord()
+{
+    if (n == SIZE)
+    {
+        cout << "Record limit reached.\n";
+        return;
+    }
+    int id, age, sys, dia, pulse;
+    string name, date;
+    cout << "Enter ID: ";
+    cin >> id;
+    if (id <= 0 || idExists(id))
+    {
+        cout << "Invalid or duplicate ID.\n";
+        return;
+    }
+    cin.ignore();
+    cout << "Enter name: ";
+    getline(cin, name);
+    cout << "Enter age: ";
+    cin >> age;
+    cout << "Enter systolic BP: ";
+    cin >> sys;
+    cout << "Enter diastolic BP: ";
+    cin >> dia;
+    cout << "Enter pulse: ";
+    cin >> pulse;
+    cin.ignore();
+    cout << "Enter date: ";
+    getline(cin, date);
+    if (name.empty() || age <= 0 || sys <= 0 ||
+        dia <= 0 || pulse <= 0)
+    {
+        cout << "Invalid details.\n";
+        return;
+    }
+    records[n].setDetails(id, name, age, sys,
+                          dia, pulse, date);
+    n++;
+    ScreenRecord::increaseTotal();
+
+    cout << "Record added successfully.\n";
+}
+void viewRecords()
+{
+    if (n == 0)
+    {
+        cout << "No records available.\n";
+        return;
+    }
+    for (int i = 0; i < n; i++)
+        records[i].display();
+}
+void summary()
+{
+    int normal = 0, elevated = 0, high = 0;
+    for (int i = 0; i < n; i++)
+    {
+        int s = records[i].getSys();
+        int d = records[i].getDia();
+        if (isPositive(s, d))
+            high++;
+        else if (s >= 120 || d >= 80)
+            elevated++;
+        else
+            normal++;
+    }
+    cout << "\nTotal: " << ScreenRecord::getTotal()
+         << "\nNormal: " << normal
+         << "\nElevated: " << elevated
+         << "\nHigh: " << high << endl;
+}
+void saveText()
+{
+    ofstream out("records.txt", ios::out);
+    if (!out)
+    {
+        cout << "File error.\n";
+        return;
+    }
+    for (int i = 0; i < n; i++)
+        records[i].writeFile(out);
+    out.close();
+    cout << "Text file saved.\n";
+}
+void loadText()
+{
+    ifstream in("records.txt", ios::in);
+    if (!in)
+    {
+        cout << "File not found.\n";
+        return;
+    }
+    string line;
+    int loaded = 0;
+    while (getline(in, line) && n < SIZE)
+    {
+        stringstream ss(line);
+        string id, name, age, sys, dia, pulse, date;
+        getline(ss, id, '|');
+        getline(ss, name, '|');
+        getline(ss, age, '|');
+        getline(ss, sys, '|');
+        getline(ss, dia, '|');
+        getline(ss, pulse, '|');
+        getline(ss, date);
+        if (id.empty())
+            continue;
+        int i = stoi(id);
+        if (idExists(i))
+            continue;
+        records[n].setDetails(i, name, stoi(age),
+            stoi(sys), stoi(dia), stoi(pulse), date);
+        n++;
+        ScreenRecord::increaseTotal();
+        loaded++;
+    }
+    in.close();
+    cout << loaded << " records loaded.\n";
+}
+void saveBinary()
+{
+    ofstream out("records.dat", ios::binary);
+    if (!out)
+    {
+        cout << "File error.\n";
+        return;
+    }
+    for (int i = 0; i < n; i++)
+    {
+        BPFile b{};
+        b.id = records[i].getID();
+        b.sys = records[i].getSys();
+        b.dia = records[i].getDia();
+        strncpy(b.name, records[i].getName().c_str(), 49);
+        out.write((char*)&b, sizeof(b));
+    }
+    out.close();
+    cout << "Binary file saved.\n";
+}
+void readBinary()
+{
+    ifstream in("records.dat", ios::binary);
+    if (!in)
+    {
+        cout << "File not found.\n";
+        return;
+    }
+    BPFile b;
+    while (in.read((char*)&b, sizeof(b)))
+        cout << "\nID: " << b.id << " Name: " << b.name
+             << " BP: " << b.sys << "/" << b.dia << endl;
+    in.close();
+}
+void randomFile()
+{
+    int pos;
+    cout << "Enter record position: ";
+    cin >> pos;
+    if (pos <= 0)
+    {
+        cout << "Invalid position.\n";
+        return;
+    }
+    ifstream in("records.dat", ios::binary);
+    if (!in)
+    {
+        cout << "File not found.\n";
+        return;
+    }
+    BPFile b;
+    in.seekg((pos - 1) * sizeof(b), ios::beg);
+    if (in.read((char*)&b, sizeof(b)))
+        cout << "ID: " << b.id << " Name: " << b.name
+             << " BP: " << b.sys << "/" << b.dia << endl;
+    else
+        cout << "Record not found.\n";
+    in.close();
+}
+void pointerDemo()
+{
+    int a[3] = {10, 20, 30};
+    int *p = a;
+    cout << "\nPointer: " << *p;
+    cout << "\nPointer arithmetic: " << *(p + 1);
+    int **pp = &p;
+    cout << "\nPointer to pointer: " << **pp;
+    void *vp = &a[1];
+    cout << "\nVoid pointer: " << (int)vp;
+    int *np = nullptr;
+    cout << "\nNull pointer: " << (np == nullptr);
+    int *wild;                  
+    (void)wild;
+    int *dp = new int(50);     
+    delete dp;              
+    dp = nullptr;              
+    ScreenRecord obj(10, "Test", 20);
+    ScreenRecord *op = &obj;
+    cout << "\nPointer to object: " << op->getID();
+    int ScreenRecord::*mp = ScreenRecord::getSysPointer();
+    cout << "\nPointer to data member: " << obj.*mp;
+    cout << "\nClass pointer member: " << *obj.getPointer();
+    cout << endl;
+}
+void arrayDemo()
+{
+    int a[3] = {120, 135, 150};
+    cout << "\n1D Array: ";
+    for (int i = 0; i < 3; i++)
+        cout << a[i] << " ";
+    int b[2][2] = {{120, 80}, {140, 90}};
+    cout << "\n2D Array:\n";
+    for (int i = 0; i < 2; i++)
+    {
+        for (int j = 0; j < 2; j++)
+            cout << b[i][j] << " ";
+        cout << endl;
+    }
+    ScreenRecord obj[2];
+    obj[0].setDetails(1, "Aman", 21, 120, 80, 75, "18-11-2026");
+    obj[1].setDetails(2, "Rahul", 22, 140, 90, 80, "18-11-2026");
+    cout << "\nArray of Objects:\n";
+    obj[0].display();
+    obj[1].display();
+    obj[0].showArray();
+    cout << "Recursive high count: " << countHigh(a, 3) << endl;
+}
+void stringDemo()
+{
+    string s = "Blood";
+    s = "Blood Pressure";     
+    s.append(" Camp");        
+    s.insert(0, "My ");       
+    s.replace(0, 2, "BP");   
+    cout << "\nString: " << s;
+    cout << "\nLength: " << s.length();
+    cout << "\nFirst character: " << s.at(0);
+    s.erase(0, 3);             
+    cout << "\nAfter erase: " << s << endl;
+}
+void constructorDemo()
+{
+    ScreenRecord a;
+    ScreenRecord b(101, "Aman", 21);
+    ScreenRecord c(b);
+    cout << "\nDefault constructor:";
+    a.display();
+    cout << "\nParameterized constructor:";
+    b.display();
+    cout << "\nCopy constructor:";
+    c.display();
+}
+void functionDemo()
+{
+    int x = 10;
+    byValue(x);
+    cout << "\nCall by value: " << x;
+    byAddress(&x);
+    cout << "\nCall by address: " << x;
+    byReference(x);
+    cout << "\nCall by reference: " << x;
+    cout << "\nFunction overloading:\n";
+    show(100);
+    show("Blood Pressure");
+}
+void structureDemo()
+{
+    ParticipantInfo p = {1, 21, "Aman"};
+    ContactChoice c;
+    c.phone = 987654321;
+    cout << "\nStructure: " << p.id << " "
+         << p.name << " " << p.age;
+    cout << "\nUnion phone: " << c.phone << endl;
+}
+int main()
+{
+    int choice;
+    do
+    {
+        cout << "\n===== BP SCREENING CAMP =====\n";
+        cout << "1. Add Record\n";
+        cout << "2. View Records\n";
+        cout << "3. Summary\n";
+        cout << "4. Save Text File\n";
+        cout << "5. Load Text File\n";
+        cout << "6. Save Binary File\n";
+        cout << "7. Read Binary File\n";
+        cout << "8. Random File Access\n";
+        cout << "9. Pointer Demonstration\n";
+        cout << "10. Array Demonstration\n";
+        cout << "11. String Demonstration\n";
+        cout << "12. Constructor Demonstration\n";
+        cout << "13. Function Demonstration\n";
+        cout << "14. Friend Function and Class\n";
+        cout << "15. Structure and Union\n";
+        cout << "16. Class String Function\n";
+        cout << "0. Exit\n";
+        cout << "Enter choice: ";
+        cin >> choice;
+        switch (choice)
+        {
+            case 1: addRecord(); break;
+            case 2: viewRecords(); break;
+            case 3: summary(); break;
+            case 4: saveText(); break;
+            case 5: loadText(); break;
+            case 6: saveBinary(); break;
+            case 7: readBinary(); break;
+            case 8: randomFile(); break;
+            case 9: pointerDemo(); break;
+            case 10: arrayDemo(); break;
+            case 11: stringDemo(); break;
+            case 12: constructorDemo(); break;
+            case 13: functionDemo(); break;
+            case 14:
+                if (n > 0)
+                {
+                    showPrivate(records[0]);
+                    CampAdmin admin;
+                    admin.showRecord(records[0]);
+                }
+                else
+                    cout << "Add a record first.\n";
+                break;
+            case 15: structureDemo(); break;
+            case 16:
+                if (n > 0)
+                    records[0].changeName();
+                else
+                    cout << "Add a record first.\n";
+                break;
+            case 0:
+                cout << "Program closed.\n";
+                break;
+            default:
+                cout << "Invalid choice.\n";
+        }
+    } while (choice != 0);
+    return 0;
+}
